@@ -12,11 +12,38 @@ Go-based Web Server with Session Caching, API Rate Limiting and API Tracking wit
 - API Tracking: Utilizes Redis' HyperLogLog to efficiently estimate the number of users calling the API.
 - Caching Strategy: Prioritizes Redis for session validation to enhance performance, with database lookups as a fallback mechanism.
 
+## Session Handling
+- Session Validation: Prioritizes Redis for faster session validation. If a session is not found or expired in Redis, it falls back to the database check. Valid sessions found in the database but not in Redis are re-cached.
+- New Session Creation: On login, any existing session for the user is removed from both Redis and the database to ensure a single active session before creating a new one with expiration time in Database and TTL in Redis.
+
 ## API Design
+- /signup: Sign up user with username and password which hashed in database.
 - /login: Authenticates users, creates a new session in DB & Redis (removing the old session if exist), and returns a session token.
 - /ping: A rate-limited API that simulates processing delay, tracks calling api.
 - /top: Returns the top 10 users based on the frequency of API calls.
 - /count: Provides an approximate count of users who have called the /ping API, leveraging HyperLogLog.
+
+### `/signup`
+
+- Method: POST
+- Description: Sign up user with username and password which hashed in database.
+- Request Body:
+  ```json
+  {
+    "username": "user1",
+    "password": "pass123"
+  }
+  ```
+- Response 200 OK:
+  ```json
+  {}
+  ```
+- Responses 400:
+  ```json
+  {
+    "error": "Username already exists!"
+  }
+  ```
 
 ### `/login`
 
@@ -32,14 +59,13 @@ Go-based Web Server with Session Caching, API Rate Limiting and API Tracking wit
 - Response 200 OK:
   ```json
   {
-    "message": "Login successful",
     "sessionToken": "<session_token>"
   }
   ```
 - Responses 401 Unauthorized:
   ```json
   {
-    "error": "Invalid credentials"
+    "error": "Username or password was wrong!"
   }
   ```
 
@@ -52,10 +78,16 @@ Go-based Web Server with Session Caching, API Rate Limiting and API Tracking wit
 ```json
 {}
 ```
-- Response 429 Too Many Requests:
+- Response 429 Too Many Requests at a time:
 ```json
 {
-  "error": "Rate limit exceeded"
+  "error": "Rate limit exceeded in 5s period 1 time calling ping API!"
+}
+```
+- Response 429 Too Many Requests in 1 minute:
+```json
+{
+  "error": "Rate limit exceeded in 1 minute period 2 time calling ping API!"
 }
 ```
 
@@ -80,7 +112,3 @@ Go-based Web Server with Session Caching, API Rate Limiting and API Tracking wit
   "estimatedCount": 150
 }
 ```
-
-## Session Handling
-- Session Validation: Prioritizes Redis for faster session validation. If a session is not found or expired in Redis, it falls back to the database check. Valid sessions found in the database but not in Redis are re-cached.
-- New Session Creation: On login, any existing session for the user is removed from both Redis and the database to ensure a single active session before creating a new one with expiration time in Database and TTL in Redis.

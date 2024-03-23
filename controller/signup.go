@@ -23,6 +23,16 @@ func Signup(c *gin.Context) {
 		return
 	}
 
+	// check username exist
+	var existingUser model.User
+	resultCheckExist := config.DB.Where("username = ?", requestBody.Username).First(&existingUser)
+	if resultCheckExist.RowsAffected > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Username already exists!",
+		})
+		return
+	}
+
 	// hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestBody.Password), 10)
 	if err != nil {
