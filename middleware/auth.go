@@ -27,14 +27,14 @@ func Auth(redisClient *redis.Client, db *gorm.DB) gin.HandlerFunc {
 			// if not exist, check in database
 			var session model.Session
 			if result := db.Where("session_token = ?", sessionToken).First(&session); result.Error != nil {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized session token in database " + sessionToken})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized session token!"})
 				return
 			}
 			// if database has session, set to Redis
 			redisClient.Set(context.Background(), sessionToken, session.UserID, 30*time.Minute)
 			userID = strconv.Itoa(int(session.UserID))
 		} else if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized session token in Redis"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized session token!"})
 			return
 		}
 

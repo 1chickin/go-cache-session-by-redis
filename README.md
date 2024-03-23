@@ -64,13 +64,12 @@ Go-based Web Server with Session Caching, API Rate Limiting and API Tracking wit
 - Description: Returns the top 10 users based on the frequency of API calls.
 - Responses 200 OK:
 ```json
-{
-  "topUsers": [
-    {"username": "user1", "calls": 20},
-    {"username": "user2", "calls": 18},
-    {...}
-  ]
-}
+	{
+		"topUsersCallingAPIAllTime": [
+			"CallingPingAPI userID:1 called 1 times",
+			"CallingPingAPI userID:3 called 4 times"
+		]
+	}
 ```
 ### `/count`
 - Method: GET

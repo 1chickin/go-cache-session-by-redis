@@ -25,8 +25,12 @@ func main() {
 		controller.Ping(c, redisClient)
 	})
 
-	// router.GET("/top", controller.Top)
-	// router.GET("/count", controller.Count)
+	router.GET("/top", func(c *gin.Context) {
+		controller.TopUsersCallingAPI(c, redisClient)
+	})
+	router.GET("/count", func(c *gin.Context) {
+		controller.Count(c, redisClient)
+	})
 
 	if err := router.Run(":8080"); err != nil {
 		panic(err)

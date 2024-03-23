@@ -40,7 +40,7 @@ func Ping(c *gin.Context, redisClient *redis.Client) {
 	rateKey := "rate:" + userID
 	val, err := redisClient.Get(context.Background(), rateKey).Result()
 	if err == nil && val >= RateLimitCount {
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded in 1 minute period 2 time calling ping API!"})
 		return
 	}
 
@@ -52,10 +52,13 @@ func Ping(c *gin.Context, redisClient *redis.Client) {
 	}
 
 	// count the number of calling ping API
-	pingCountKey := "pingCount:" + userID
+	pingCountKey := "CallingPingAPI userID:" + userID
 	redisClient.Incr(context.Background(), pingCountKey)
 
-	// sleep 5 seconds
+	// add userID to HyperLogLog for counting the number of users calling ping API
+	redisClient.PFAdd(context.Background(), "pingUsersHyperLogLog", userID)
+
+	// sleep the specified time
 	time.Sleep(PingProcessTime)
 
 	c.JSON(http.StatusOK, gin.H{"message": "ping pong"})
