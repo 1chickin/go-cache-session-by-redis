@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/1chickin/go-cache-session-by-redis/config"
@@ -56,11 +57,18 @@ func Login(c *gin.Context, redisClient *redis.Client) {
 
 	// check exist session token in database
 	var oldSession model.Session
-	config.DB.Where("user_id = ?", user.ID).First(&oldSession)
-	fmt.Println("oldSession: ", oldSession)
-	if oldSession.ID != 0 {
+	result := config.DB.Where("user_id = ?", user.ID).First(&oldSession)
+	// get HTTP_FLAG from env to boolean type, if not exist, set to false
+	httpFlagStr := os.Getenv("HTTP_FLAG")
+	httpFlag, err := strconv.ParseBool(httpFlagStr)
+	if err != nil {
+		httpFlag = false
+	}
+
+	// If the session exists, delete it
+	if result.Error == nil && oldSession.ID != 0 {
 		//  delete session_token in cookie
-		c.SetCookie("session_token", "", -1, "/", "", false, true)
+		c.SetCookie("session_token", "", -1, "/", "", httpFlag, true) // todo set https secure by true: c.SetCookie("session_token", sessionToken, 30*60, "/", "", true, true)
 		// delete session in Redis
 		redisClient.Del(context.Background(), oldSession.SessionToken)
 		// delete physical session in database

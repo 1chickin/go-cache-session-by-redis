@@ -30,8 +30,16 @@ func Auth(redisClient *redis.Client, db *gorm.DB) gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized session token!"})
 				return
 			}
-			// if database has session, set to Redis
-			redisClient.Set(context.Background(), sessionToken, session.UserID, 30*time.Minute)
+			// check if the session has expired
+			if time.Now().After(session.ExpiresAt) {
+				// delete the session from the database
+				db.Delete(&session)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired!"})
+				return
+			}
+			// if database has valid session, set to Redis with the remaining time until expiration
+			expireTime := time.Until(session.ExpiresAt)
+			redisClient.Set(context.Background(), sessionToken, session.UserID, expireTime)
 			userID = strconv.Itoa(int(session.UserID))
 		} else if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized session token!"})
